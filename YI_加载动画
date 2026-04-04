@@ -343,32 +343,35 @@ function toAnnouncement()
                 content.Visible = false
                 
                 -- 显示制作名单
-                local creditsTitle = Instance.new("TextLabel")
-                creditsTitle.Size = UDim2.new(0, 260, 0, 40)
-                creditsTitle.Position = UDim2.new(0.5, -130, 0.5, -70)
-                creditsTitle.BackgroundTransparency = 1
-                creditsTitle.Text = "制作名单"
-                creditsTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-                creditsTitle.TextSize = 24
-                creditsTitle.Font = Enum.Font.GothamBold
-                creditsTitle.TextStrokeTransparency = 0.3
-                creditsTitle.TextStrokeColor3 = Color3.fromRGB(170, 200, 230)
-                creditsTitle.ZIndex = 6
-                creditsTitle.Parent = ScreenGui
-                
-                local creditsList = Instance.new("TextLabel")
-                creditsList.Size = UDim2.new(0, 260, 0, 100)
-                creditsList.Position = UDim2.new(0.5, -130, 0.5, -20)
-                creditsList.BackgroundTransparency = 1
-                creditsList.Text = "主作者：灰\n副作者：橙子\n特别感谢：长夜月\"
-                creditsList.TextColor3 = Color3.fromRGB(220, 240, 255)
-                creditsList.TextSize = 16
-                creditsList.Font = Enum.Font.GothamMedium
-                creditsList.TextWrapped = true
-                creditsList.TextStrokeTransparency = 0.2
-                creditsList.TextStrokeColor3 = Color3.fromRGB(100, 150, 200)
-                creditsList.ZIndex = 6
-                creditsList.Parent = ScreenGui
+                -- 在 toAnnouncement() 函数中，替换制作名单相关代码块
+
+-- 显示制作名单（修复语法 + 调整字体大小颜色）
+local creditsTitle = Instance.new("TextLabel")
+creditsTitle.Size = UDim2.new(0, 260, 0, 50)
+creditsTitle.Position = UDim2.new(0.5, -130, 0.5, -75)
+creditsTitle.BackgroundTransparency = 1
+creditsTitle.Text = "制作名单"
+creditsTitle.TextColor3 = Color3.fromRGB(255, 255, 255)      -- 白色
+creditsTitle.TextSize = 28                                   -- 增大字号
+creditsTitle.Font = Enum.Font.GothamBold
+creditsTitle.TextStrokeTransparency = 0.3
+creditsTitle.TextStrokeColor3 = Color3.fromRGB(170, 200, 230) -- 浅蓝描边
+creditsTitle.ZIndex = 6
+creditsTitle.Parent = ScreenGui
+
+local creditsList = Instance.new("TextLabel")
+creditsList.Size = UDim2.new(0, 260, 0, 110)
+creditsList.Position = UDim2.new(0.5, -130, 0.5, -40)
+creditsList.BackgroundTransparency = 1
+creditsList.Text = "主作者：灰\n副作者：橙子\n特别感谢：长夜月"  -- 修复：去掉末尾的错误引号
+creditsList.TextColor3 = Color3.fromRGB(255, 255, 255)        -- 白色
+creditsList.TextSize = 18                                     -- 增大字号
+creditsList.Font = Enum.Font.GothamMedium
+creditsList.TextWrapped = true
+creditsList.TextStrokeTransparency = 0.2
+creditsList.TextStrokeColor3 = Color3.fromRGB(170, 200, 230)   -- 浅蓝描边
+creditsList.ZIndex = 6
+creditsList.Parent = ScreenGui
                 
                 creditsTitle.TextTransparency = 1
                 creditsList.TextTransparency = 1
