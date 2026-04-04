@@ -1,0 +1,455 @@
+-- ================== 最终版加载动画（含制作名单） ==================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SnowflakeLoadingScreen"
+ScreenGui.DisplayOrder = 999999
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+ScreenGui.IgnoreGuiInset = true
+
+if game:GetService("RunService"):IsStudio() then
+    ScreenGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+else
+    ScreenGui.Parent = game:GetService("CoreGui")
+end
+
+-- 背景（半透明白蓝渐变）
+local background = Instance.new("Frame")
+background.Size = UDim2.new(1, 0, 1, 0)
+background.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+background.BackgroundTransparency = 0.65
+background.BorderSizePixel = 0
+background.Parent = ScreenGui
+
+local bgGradient = Instance.new("UIGradient")
+bgGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(200, 230, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(220, 245, 255))
+})
+bgGradient.Transparency = NumberSequence.new(0.3)
+bgGradient.Parent = background
+
+local function createCircle(parent, size, color, transparency)
+    local circle = Instance.new("Frame")
+    circle.Size = size
+    circle.Position = UDim2.new(0.5, -size.X.Offset/2, 0.5, -size.Y.Offset/2)
+    circle.BackgroundColor3 = color
+    circle.BackgroundTransparency = transparency or 0
+    circle.BorderSizePixel = 0
+    circle.Parent = parent
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(1, 0)
+    corner.Parent = circle
+    return circle
+end
+
+-- 中心球（双层）
+local centerOuter = createCircle(ScreenGui, UDim2.new(0, 20, 0, 20), Color3.fromRGB(170, 200, 230), 0.6)
+centerOuter.ZIndex = 1
+local centerInner = createCircle(ScreenGui, UDim2.new(0, 12, 0, 12), Color3.fromRGB(200, 220, 250), 0)
+centerInner.ZIndex = 2
+
+-- 下方加载文字
+local subText = Instance.new("TextLabel")
+subText.Size = UDim2.new(0, 240, 0, 40)
+subText.Position = UDim2.new(0.5, -120, 0.5, 85)
+subText.BackgroundTransparency = 1
+subText.Text = "  YI · Loading...  "
+subText.TextColor3 = Color3.fromRGB(170, 200, 230)
+subText.TextSize = 20
+subText.Font = Enum.Font.GothamMedium
+subText.TextTransparency = 0
+subText.ZIndex = 5
+subText.Parent = ScreenGui
+
+local tweenService = game:GetService("TweenService")
+local blinkTween = tweenService:Create(subText, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), 
+    {TextTransparency = 0.7})
+blinkTween:Play()
+
+-- 七个彩色小球
+local colorOrder = {
+    "Red", "Orange", "Yellow", "Green", "Cyan", "Blue", "Purple"
+}
+local colors = {
+    Red = Color3.fromRGB(255, 80, 80),
+    Orange = Color3.fromRGB(255, 160, 80),
+    Yellow = Color3.fromRGB(255, 255, 80),
+    Green = Color3.fromRGB(80, 255, 80),
+    Cyan = Color3.fromRGB(80, 255, 255),
+    Blue = Color3.fromRGB(80, 160, 255),
+    Purple = Color3.fromRGB(200, 80, 255)
+}
+local satellites = {}
+local angles = {}
+local radii = {}
+local speeds = {}
+local radiusStart = 110
+local radiusEnd = 18
+local rotateDuration = 2.5
+local approachDuration = 1.0
+
+-- 拖尾效果
+local function createTrail(color, pos)
+    local trail = Instance.new("Frame")
+    trail.Size = UDim2.new(0, 6, 0, 6)
+    trail.Position = pos
+    trail.BackgroundColor3 = color
+    trail.BackgroundTransparency = 0.5
+    trail.BorderSizePixel = 0
+    trail.Parent = ScreenGui
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(1, 0)
+    corner.Parent = trail
+    task.spawn(function()
+        local tween = tweenService:Create(trail, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {BackgroundTransparency = 1})
+        tween:Play()
+        tween.Completed:Connect(function() trail:Destroy() end)
+    end)
+end
+
+-- 创建小球（初始透明）
+for i = 1, 7 do
+    local sat = createCircle(ScreenGui, UDim2.new(0, 12, 0, 12), colors[colorOrder[i]], 1)
+    table.insert(satellites, sat)
+    angles[i] = (i - 1) * (360 / 7)
+    radii[i] = radiusStart
+    speeds[i] = 1.5
+    sat.Position = UDim2.new(0.5, math.cos(math.rad(angles[i])) * radii[i] - 6, 0.5, math.sin(math.rad(angles[i])) * radii[i] - 6)
+    sat.ZIndex = 2
+end
+
+local lastPositions = {}
+for i = 1, 7 do lastPositions[i] = nil end
+
+-- 小球依次出现
+for idx = 1, 7 do
+    task.delay((idx - 1) * 0.2, function()
+        local sat = satellites[idx]
+        sat.BackgroundTransparency = 1
+        local appear = tweenService:Create(sat, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), 
+            {BackgroundTransparency = 0.2, Size = UDim2.new(0, 14, 0, 14)})
+        appear:Play()
+        appear.Completed:Connect(function()
+            sat.Size = UDim2.new(0, 12, 0, 12)
+        end)
+    end)
+end
+
+task.delay(7 * 0.2 + 0.2, function()
+    startRotating()
+end)
+
+local runService = game:GetService("RunService")
+local rotateConn = nil
+local approachConn = nil
+local startApproach = nil
+local textLabel = nil
+local welcomeLabel = nil
+
+function startRotating()
+    rotateConn = runService.RenderStepped:Connect(function()
+        for i = 1, 7 do
+            angles[i] = angles[i] + speeds[i]
+            local rad = math.rad(angles[i])
+            local x = math.cos(rad) * radii[i]
+            local y = math.sin(rad) * radii[i]
+            local newPos = UDim2.new(0.5, x - 6, 0.5, y - 6)
+            satellites[i].Position = newPos
+            
+            if lastPositions[i] then
+                local lastX, lastY = lastPositions[i].X.Offset, lastPositions[i].Y.Offset
+                createTrail(colors[colorOrder[i]], UDim2.new(0.5, lastX, 0.5, lastY))
+            end
+            lastPositions[i] = newPos
+        end
+    end)
+
+    task.delay(rotateDuration, function()
+        if rotateConn then rotateConn:Disconnect() end
+        startApproach = tick()
+        
+        approachConn = runService.RenderStepped:Connect(function()
+            local elapsed = tick() - startApproach
+            local t = math.min(elapsed / approachDuration, 1)
+            for i = 1, 7 do
+                local newRadius = radiusStart - (radiusStart - radiusEnd) * t
+                radii[i] = newRadius
+                angles[i] = angles[i] + speeds[i]
+                local rad = math.rad(angles[i])
+                local x = math.cos(rad) * newRadius
+                local y = math.sin(rad) * newRadius
+                local newPos = UDim2.new(0.5, x - 6, 0.5, y - 6)
+                satellites[i].Position = newPos
+                
+                if lastPositions[i] then
+                    local lastX, lastY = lastPositions[i].X.Offset, lastPositions[i].Y.Offset
+                    createTrail(colors[colorOrder[i]], UDim2.new(0.5, lastX, 0.5, lastY))
+                end
+                lastPositions[i] = newPos
+            end
+            if t >= 1 then
+                if approachConn then approachConn:Disconnect() end
+                onCollision()
+            end
+        end)
+    end)
+end
+
+function onCollision()
+    -- 小球淡出
+    for _, sat in ipairs(satellites) do
+        tweenService:Create(sat, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {BackgroundTransparency = 1}):Play()
+    end
+
+    -- 中心球放大
+    tweenService:Create(centerOuter, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+        {Size = UDim2.new(0, 130, 0, 130), Position = UDim2.new(0.5, -65, 0.5, -65), BackgroundTransparency = 0.7}):Play()
+    tweenService:Create(centerInner, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+        {Size = UDim2.new(0, 110, 0, 110), Position = UDim2.new(0.5, -55, 0.5, -55)}):Play()
+
+    -- 显示“YI”
+    textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(0, 100, 0, 100)
+    textLabel.Position = UDim2.new(0.5, -50, 0.5, -50)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = "YI"
+    textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    textLabel.TextSize = 48
+    textLabel.Font = Enum.Font.GothamBold
+    textLabel.TextStrokeTransparency = 0.3
+    textLabel.TextStrokeColor3 = Color3.fromRGB(170, 200, 230)
+    textLabel.TextTransparency = 1
+    textLabel.ZIndex = 5
+    textLabel.Parent = ScreenGui
+    
+    tweenService:Create(textLabel, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {TextTransparency = 0}):Play()
+
+    -- 下方文字淡出并停止闪烁
+    blinkTween:Cancel()
+    tweenService:Create(subText, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {TextTransparency = 1}):Play()
+
+    -- 拉成长条并显示欢迎语
+    task.delay(0.8, function()
+        local targetSize = UDim2.new(0, 280, 0, 60)
+        local targetPos = UDim2.new(0.5, -140, 0.5, -30)
+        tweenService:Create(centerOuter, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+            {Size = targetSize, Position = targetPos, BackgroundTransparency = 0.8}):Play()
+        tweenService:Create(centerInner, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+            {Size = UDim2.new(0, 260, 0, 40), Position = UDim2.new(0.5, -130, 0.5, -20)}):Play()
+        
+        local cornerInner = centerInner:FindFirstChild("UICorner")
+        local cornerOuter = centerOuter:FindFirstChild("UICorner")
+        if cornerInner then
+            tweenService:Create(cornerInner, TweenInfo.new(0.6), {CornerRadius = UDim.new(0, 12)}):Play()
+        end
+        if cornerOuter then
+            tweenService:Create(cornerOuter, TweenInfo.new(0.6), {CornerRadius = UDim.new(0, 12)}):Play()
+        end
+
+        if textLabel then
+            welcomeLabel = textLabel
+            textLabel.Text = "欢迎使用"
+            textLabel.TextSize = 32
+            textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            textLabel.TextStrokeColor3 = Color3.fromRGB(170, 200, 230)
+            tweenService:Create(textLabel, TweenInfo.new(0.6), 
+                {Size = UDim2.new(0, 260, 0, 50), Position = UDim2.new(0.5, -130, 0.5, -25), TextSize = 36}):Play()
+        end
+
+        -- 进入公告板阶段
+        task.delay(1.2, function()
+            toAnnouncement()
+        end)
+    end)
+end
+
+function toAnnouncement()
+    -- 上移
+    local upPos = UDim2.new(0.5, -140, 0.5, -100)
+    tweenService:Create(centerOuter, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {Position = upPos}):Play()
+    tweenService:Create(centerInner, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {Position = UDim2.new(0.5, -130, 0.5, -90)}):Play()
+    if welcomeLabel then
+        tweenService:Create(welcomeLabel, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {Position = UDim2.new(0.5, -130, 0.5, -95)}):Play()
+    end
+
+    task.delay(0.4, function()
+        -- 下展成公告板
+        local newSizeOuter = UDim2.new(0, 280, 0, 160)
+        local newPosOuter = UDim2.new(0.5, -140, 0.5, -90)
+        local newSizeInner = UDim2.new(0, 260, 0, 140)
+        local newPosInner = UDim2.new(0.5, -130, 0.5, -80)
+
+        tweenService:Create(centerOuter, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+            {Size = newSizeOuter, Position = newPosOuter, BackgroundTransparency = 0.6}):Play()
+        tweenService:Create(centerInner, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+            {Size = newSizeInner, Position = newPosInner, BackgroundTransparency = 0.2}):Play()
+
+        local cornerOuter = centerOuter:FindFirstChild("UICorner")
+        local cornerInner = centerInner:FindFirstChild("UICorner")
+        if cornerOuter then
+            tweenService:Create(cornerOuter, TweenInfo.new(0.5), {CornerRadius = UDim.new(0, 20)}):Play()
+        end
+        if cornerInner then
+            tweenService:Create(cornerInner, TweenInfo.new(0.5), {CornerRadius = UDim.new(0, 20)}):Play()
+        end
+
+        if welcomeLabel then
+            welcomeLabel.Visible = false
+        end
+
+        -- 公告标题
+        local title = Instance.new("TextLabel")
+        title.Size = UDim2.new(0, 260, 0, 50)
+        title.Position = UDim2.new(0.5, -130, 0.5, -75)
+        title.BackgroundTransparency = 1
+        title.Text = "YI_HUB"
+        title.TextColor3 = Color3.fromRGB(255, 255, 255)  
+        title.TextSize = 27
+        title.Font = Enum.Font.GothamBold
+        title.TextStrokeTransparency = 0.3
+        title.TextStrokeColor3 = Color3.fromRGB(170, 200, 230)  
+        title.ZIndex = 6
+        title.Parent = ScreenGui
+
+        -- 公告内容
+        local content = Instance.new("TextLabel")
+        content.Size = UDim2.new(0, 260, 0, 80)
+        content.Position = UDim2.new(0.5, -130, 0.5, -30)
+        content.BackgroundTransparency = 1
+        content.Text = "感谢使用 YI_Hub\n祝您天天开心游戏愉快！"
+        content.TextColor3 = Color3.fromRGB(255, 255, 255)  
+        content.TextSize = 18
+        content.Font = Enum.Font.GothamMedium
+        content.TextWrapped = true
+        content.TextStrokeTransparency = 0.2
+        content.TextStrokeColor3 = Color3.fromRGB(170, 200, 230)
+        content.ZIndex = 6
+        content.Parent = ScreenGui
+
+        title.TextTransparency = 1
+        content.TextTransparency = 1
+        tweenService:Create(title, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {TextTransparency = 0}):Play()
+        tweenService:Create(content, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {TextTransparency = 0}):Play()
+
+        -- 公告显示2秒后，进入制作名单
+        task.delay(2.0, function()
+            -- 淡出公告板内容
+            tweenService:Create(title, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {TextTransparency = 1}):Play()
+            tweenService:Create(content, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {TextTransparency = 1}):Play()
+            
+            task.delay(0.4, function()
+                -- 隐藏公告文字
+                title.Visible = false
+                content.Visible = false
+                
+                -- 显示制作名单
+                local creditsTitle = Instance.new("TextLabel")
+                creditsTitle.Size = UDim2.new(0, 260, 0, 40)
+                creditsTitle.Position = UDim2.new(0.5, -130, 0.5, -70)
+                creditsTitle.BackgroundTransparency = 1
+                creditsTitle.Text = "制作名单"
+                creditsTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+                creditsTitle.TextSize = 24
+                creditsTitle.Font = Enum.Font.GothamBold
+                creditsTitle.TextStrokeTransparency = 0.3
+                creditsTitle.TextStrokeColor3 = Color3.fromRGB(170, 200, 230)
+                creditsTitle.ZIndex = 6
+                creditsTitle.Parent = ScreenGui
+                
+                local creditsList = Instance.new("TextLabel")
+                creditsList.Size = UDim2.new(0, 260, 0, 100)
+                creditsList.Position = UDim2.new(0.5, -130, 0.5, -20)
+                creditsList.BackgroundTransparency = 1
+                creditsList.Text = "主作者：灰\n副作者：橙子\n特别感谢：长夜月\"
+                creditsList.TextColor3 = Color3.fromRGB(220, 240, 255)
+                creditsList.TextSize = 16
+                creditsList.Font = Enum.Font.GothamMedium
+                creditsList.TextWrapped = true
+                creditsList.TextStrokeTransparency = 0.2
+                creditsList.TextStrokeColor3 = Color3.fromRGB(100, 150, 200)
+                creditsList.ZIndex = 6
+                creditsList.Parent = ScreenGui
+                
+                creditsTitle.TextTransparency = 1
+                creditsList.TextTransparency = 1
+                tweenService:Create(creditsTitle, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {TextTransparency = 0}):Play()
+                tweenService:Create(creditsList, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {TextTransparency = 0}):Play()
+                
+                -- 名单显示1.5秒后破碎
+                task.delay(1.8, function()
+                    breakApart(creditsTitle, creditsList)
+                end)
+            end)
+        end)
+    end)
+end
+
+function breakApart(title, content)
+    local objectsToBreak = {
+        centerOuter, centerInner, background, title, content
+    }
+    
+    for _, obj in ipairs(objectsToBreak) do
+        if obj then
+            obj.Visible = false
+        end
+    end
+    
+    local particleCount = 150
+    for i = 1, particleCount do
+        local colorChoice = math.random()
+        local color
+        if colorChoice < 0.7 then
+            color = Color3.fromRGB(170 + math.random(50), 200 + math.random(50), 230 + math.random(25))
+        else
+            local rand = math.random(1, 7)
+            color = colors[colorOrder[rand]]
+        end
+        
+        local particle = Instance.new("Frame")
+        local size = math.random(4, 10)
+        particle.Size = UDim2.new(0, size, 0, size)
+        particle.BackgroundColor3 = color
+        particle.BackgroundTransparency = 0.2
+        particle.BorderSizePixel = 0
+        particle.Parent = ScreenGui
+        
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(1, 0)
+        corner.Parent = particle
+        
+        local startX = math.random(-200, 200)
+        local startY = math.random(-200, 200)
+        particle.Position = UDim2.new(0.5, startX - size/2, 0.5, startY - size/2)
+        
+        local angle = math.random() * 2 * math.pi
+        local distance = math.random(400, 1000)
+        local targetX = startX + math.cos(angle) * distance
+        local targetY = startY + math.sin(angle) * distance
+        local rotSpeed = math.random(-180, 180)
+        
+        local move = tweenService:Create(particle, TweenInfo.new(1.0, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {Position = UDim2.new(0.5, targetX - size/2, 0.5, targetY - size/2), Rotation = rotSpeed})
+        move:Play()
+        
+        local fade = tweenService:Create(particle, TweenInfo.new(0.8, Enum.EasingStyle.Quad),
+            {BackgroundTransparency = 1})
+        fade:Play()
+        
+        task.delay(1.2, function()
+            particle:Destroy()
+        end)
+    end
+    
+    task.delay(1.3, function()
+        if ScreenGui then ScreenGui:Destroy() end
+    end)
+end
+
+-- 保险：如果靠拢阶段未触发
+task.delay(rotateDuration + approachDuration + 0.5 + 7*0.2, function()
+    if approachConn and approachConn.Connected then
+        approachConn:Disconnect()
+        onCollision()
+    end
+end)
