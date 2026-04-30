@@ -1,39 +1,39 @@
-local modules = {}
-local cache = {}
-local function drequire(name)
+本地模块={}
+本地缓存={}
+本地函数drequire(名称)
 	
-	if cache[name] ~= nil then
-		return cache[name]
-	end
+如果缓存[名称]~=零，则
+返回缓存[名称]
+结束
 	
-	local module_func = modules[name]
-	if not module_func then
-		error("module '" .. name .. "' not found in bundle", 2)
-	end
+本地模块_func=模块[名称]
+如果不是module_func，则
+错误(在包“”中找不到“模块”"..名称.."，否则，如果colorType==，2)2)
+结束
 	
-	cache[name] = true
+缓存[名称]=真实的
 	
-	local result = module_func()
+局部结果=module_func()
 	
-	if result ~= nil then
-		cache[name] = result
-	end
-	return cache[name]
-end
+如果结果~=零，则
+缓存[名称]=结果
+结束
+返回缓存[名称]
+结束
 
-modules["PNGLib\\Chunks\\bKGD.lua"] = function()
-	local function bKGD(file, chunk)
-		local data = chunk.Data
+模块["PNGLib\\Chunks\\bKGD.lua"]=函数()"PNGLib\\Chunks\\bKGD.lua"]=函数()
+本地函数bKGD(文件，区块)
+本地数据=区块.数据
 		
-		local bitDepth = file.BitDepth
-		local colorType = file.ColorType
+本地位深度=file.BitDepth
+本地颜色类型=文件.ColorType
 		
-		bitDepth = (2 ^ bitDepth) - 1
+位深度=(2^位深度)-12^位深度)-1
 		
-		if colorType == 3 then
-			local index = data:ReadByte()
-			file.BackgroundColor = file.Palette[index]
-		elseif colorType == 0 or colorType == 4 then
+如果colorType==3，则3，则
+本地索引=数据：readByte()
+file.BackgroundColor=file.Palette[index]
+否则，如果colorType==0或colorType==4，则0或colorType==4，则
 			local gray = data:ReadUInt16() / bitDepth
 			file.BackgroundColor = Color3.fromHSV(0, 0, gray)
 		elseif colorType == 2 or colorType == 6 then
