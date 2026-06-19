@@ -1,0 +1,386 @@
+-- 加载 WindUI 库
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/951357nvjn/dyzs/refs/heads/main/winduiYI.lua"))()
+WindUI.Transparency = 0.3
+WindUI:SetTheme("Dark")
+
+-- 渐变文字函数
+function gradient(text, startColor, endColor)
+    local result = ""
+    local chars = {}
+    for uchar in text:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+        table.insert(chars, uchar)
+    end
+    local length = #chars
+    for i = 1, length do
+        local t = (i - 1) / math.max(length - 1, 1)
+        local r = startColor.R + (endColor.R - startColor.R) * t
+        local g = startColor.G + (endColor.G - startColor.G) * t
+        local b = startColor.B + (endColor.B - startColor.B) * t
+        result = result .. string.format('<font color="rgb(%d,%d,%d)">%s</font>',
+            math.floor(r * 255), math.floor(g * 255), math.floor(b * 255), chars[i])
+    end
+    return result
+end
+
+-- 创建主窗口（蓝白主题）
+local Window = WindUI:CreateWindow({
+    Icon = "moon",
+    Title = gradient("YI_餐厅大亨3", Color3.fromHex("#00CCFF"), Color3.fromHex("#66E0FF")),
+    Author = gradient("@灰", Color3.fromHex("#00CCFF"), Color3.fromHex("#66E0FF")),
+    Folder = "YI_HUB",
+    Size = UDim2.fromOffset(520, 410),
+    Background = "https://raw.githubusercontent.com/951357nvjn/dyzs/6b5682604a4f2199446368c2107401aea3b0ef72/Screenshot_2026_0227_141347.png",
+    BackgroundImageTransparency = 0.25,
+    Theme = "Dark",
+    User = {Enabled = false},
+    SideBarWidth = 160,
+    ScrollBarEnabled = true
+})
+
+-- 打开按钮配置
+local buttonConfig = {
+    Title = gradient("YI_HUB", Color3.fromHex("#00CCFF"), Color3.fromHex("#66E0FF")),
+    Icon = "moon",
+    StrokeThickness = 2,
+    Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromHex("#66E0FF")),
+        ColorSequenceKeypoint.new(0.5, Color3.fromHex("#00CCFF")),
+        ColorSequenceKeypoint.new(1, Color3.fromHex("#0099CC"))
+    }),
+    Draggable = true,
+}
+Window:EditOpenButton(buttonConfig)
+
+-- 彩虹边框动画
+local windowFrame = Window and (Window.UIElements and Window.UIElements.Main or Window.Frame or Window.Gui or Window)
+if windowFrame then
+    local stroke = Instance.new("UIStroke")
+    stroke.Name = "RainbowStroke"
+    stroke.Thickness = 2
+    stroke.Color = Color3.new(1, 1, 1)
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    local grad = Instance.new("UIGradient")
+    grad.Name = "RainbowGradient"
+    grad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromHex("#66E0FF")),
+        ColorSequenceKeypoint.new(0.3, Color3.fromHex("#00CCFF")),
+        ColorSequenceKeypoint.new(0.7, Color3.fromHex("#0099CC")),
+        ColorSequenceKeypoint.new(1, Color3.fromHex("#0066CC"))
+    })
+    grad.Enabled = true
+    grad.Parent = stroke
+    stroke.Parent = windowFrame
+    coroutine.wrap(function()
+        local rotationSpeed = 40
+        while stroke and stroke.Parent do
+            task.wait(0.01)
+            grad.Rotation = (grad.Rotation + rotationSpeed * 0.1) % 360
+        end
+    end)()
+end
+
+-- 模糊效果（保留）
+local Lighting = game:GetService("Lighting")
+local TweenServiceBlur = game:GetService("TweenService")
+local blur = Lighting:FindFirstChildOfClass("BlurEffect")
+if not blur then
+    blur = Instance.new("BlurEffect")
+    blur.Size = 0
+    blur.Parent = Lighting
+end
+
+task.spawn(function()
+    local wasOpen = false
+    while true do
+        task.wait(0.1)
+        local mainFrame = Window.UIElements and Window.UIElements.Main
+        local isOpen = mainFrame and mainFrame.Visible or false
+        if isOpen ~= wasOpen then
+            wasOpen = isOpen
+            TweenServiceBlur:Create(blur, TweenInfo.new(0.3), {
+                Size = isOpen and 20 or 0
+            }):Play()
+        end
+    end
+end)
+
+-- ==================== 标签页 ==================
+local Tabs = {
+    Info = Window:Tab({ Title = "信息", Icon = "info" }),
+    MyRestaurant = Window:Tab({ Title = "我的餐厅", Icon = "home" }),
+    FriendRestaurant = Window:Tab({ Title = "好友餐厅", Icon = "users" })
+}
+
+-- ==================== 信息标签页 ==================
+local infoTab = Tabs.Info
+infoTab:Paragraph({
+    Title = "欢迎使用该脚本",
+    Desc = "当前加载为餐厅大亨3",
+    Image = "scroll-text",
+    ImageSize = 30,
+    Thumbnail = "https://raw.githubusercontent.com/951357nvjn/dyzs/refs/heads/main/mmexport1774101687773.jpeg",
+    ThumbnailSize = 200
+})
+infoTab:Paragraph({ Title = "脚本权限", Desc = "此脚本归属于YI_HUB", Image = "file-code", ImageSize = 30 })
+infoTab:Paragraph({ Title = "提示", Desc = "部分功能可能失效，请自行测试", Image = "file-code", ImageSize = 30 })
+
+-- ==================== 餐厅功能（我的餐厅） ==================
+local MyTab = Tabs.MyRestaurant
+local Data = {
+    ["自动收集钱"] = false,
+    ["自动收集餐具"] = false,
+    ["自动烹饪"] = false,
+    ["自动给食物"] = false,
+    ["自动拿订单"] = false,
+    ["自动接订单"] = false,
+    ["自动选桌子"] = false,
+    ["自动拿零钱"] = false,
+}
+
+local LocalPlayer = game.Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- 自动收集账单
+MyTab:Toggle({
+    Title = "自动收集账单",
+    Value = false,
+    Callback = function(state)
+        Data["自动收集钱"] = state
+        spawn(function()
+            while Data["自动收集钱"] do
+                pcall(function()
+                    for _, v in pairs(workspace.Tycoons:GetChildren()) do
+                        if v.Player.Value == LocalPlayer then
+                            for _, a in pairs(v.Items.Surface:GetChildren()) do
+                                if a:FindFirstChild("Bill") then
+                                    ReplicatedStorage.Events.Restaurant.TaskCompleted:FireServer({["Tycoon"] = v, ["Name"] = "CollectBill", ["FurnitureModel"] = a})
+                                end
+                            end
+                        end
+                    end
+                end)
+                task.wait(0.1)
+            end
+        end)
+    end
+})
+
+-- 自动收集餐具
+MyTab:Toggle({
+    Title = "自动收集餐具",
+    Value = false,
+    Callback = function(state)
+        Data["自动收集餐具"] = state
+        spawn(function()
+            while Data["自动收集餐具"] do
+                pcall(function()
+                    for _, v in pairs(workspace.Tycoons:GetChildren()) do
+                        if v.Player.Value == LocalPlayer then
+                            for _, a in pairs(v.Items.Surface:GetChildren()) do
+                                if a.Name:find("T") and a:FindFirstChild("Trash") then
+                                    ReplicatedStorage.Events.Restaurant.TaskCompleted:FireServer({["Tycoon"] = v, ["Name"] = "CollectDishes", ["FurnitureModel"] = a})
+                                end
+                            end
+                        end
+                    end
+                end)
+                task.wait(0.1)
+            end
+        end)
+    end
+})
+
+-- 自动烹饪
+MyTab:Toggle({
+    Title = "自动烹饪",
+    Value = false,
+    Callback = function(state)
+        Data["自动烹饪"] = state
+        spawn(function()
+            while Data["自动烹饪"] do
+                pcall(function()
+                    for _, v in pairs(workspace.Tycoons:GetChildren()) do
+                        if v:FindFirstChild("Player") and v.Player.Value == LocalPlayer then
+                            for _, a in pairs(v.Items.Surface:GetDescendants()) do
+                                if a.Name:find("Oven") then
+                                    ReplicatedStorage.Events.Cook.CookInputRequested:FireServer("Interact", a.Parent, "Oven")
+                                end
+                            end
+                        end
+                    end
+                end)
+                task.wait(0.1)
+            end
+        end)
+    end
+})
+
+-- 自动送餐
+MyTab:Toggle({
+    Title = "自动送餐",
+    Value = false,
+    Callback = function(state)
+        Data["自动给食物"] = state
+        spawn(function()
+            while Data["自动给食物"] do
+                pcall(function()
+                    for _, v in pairs(workspace.Tycoons:GetChildren()) do
+                        if v:FindFirstChild("Player") and v.Player.Value == LocalPlayer then
+                            for _, a in pairs(v.Objects.Food:GetChildren()) do
+                                if not a:GetAttribute("Taken") then
+                                    ReplicatedStorage.Events.Restaurant.GrabFood:InvokeServer(a)
+                                    for _, gui in pairs(LocalPlayer.PlayerGui:GetDescendants()) do
+                                        if gui:IsA("ImageLabel") and gui.Parent and gui.Parent.Parent.Parent.Name == "CustomerSpeechUI" then
+                                            ReplicatedStorage.Events.Restaurant.TaskCompleted:FireServer({
+                                                Name = "Serve",
+                                                GroupId = tostring(gui.Parent.Parent.Parent.Adornee.Parent.Parent.Name),
+                                                Tycoon = v, FoodModel = a,
+                                                CustomerId = tostring(gui.Parent.Parent.Parent.Adornee.Parent.Name)
+                                            })
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end)
+                task.wait(0.1)
+            end
+        end)
+    end
+})
+
+-- 自动接单
+MyTab:Toggle({
+    Title = "自动接单",
+    Value = false,
+    Callback = function(state)
+        Data["自动接订单"] = state
+        spawn(function()
+            while Data["自动接订单"] do
+                pcall(function()
+                    for _, v in pairs(workspace.Tycoons:GetChildren()) do
+                        if v:FindFirstChild("Player") and v.Player.Value == LocalPlayer then
+                            for _, gui in pairs(LocalPlayer.PlayerGui:GetDescendants()) do
+                                if gui:IsA("ImageLabel") and gui.Parent and gui.Parent.Parent.Parent.Name == "CustomerSpeechUI" then
+                                    ReplicatedStorage.Events.Restaurant.TaskCompleted:FireServer({
+                                        Name = "TakeOrder",
+                                        GroupId = tostring(gui.Parent.Parent.Parent.Adornee.Parent.Parent.Name),
+                                        Tycoon = v,
+                                        CustomerId = tostring(gui.Parent.Parent.Parent.Adornee.Parent.Name)
+                                    })
+                                end
+                            end
+                        end
+                    end
+                end)
+                task.wait(0.1)
+            end
+        end)
+    end
+})
+
+-- 自动安排座位
+MyTab:Toggle({
+    Title = "自动安排座位",
+    Value = false,
+    Callback = function(state)
+        Data["自动选桌子"] = state
+        spawn(function()
+            while Data["自动选桌子"] do
+                pcall(function()
+                    for _, v in pairs(workspace.Tycoons:GetChildren()) do
+                        if v.Player.Value == LocalPlayer then
+                            for _, a in pairs(v.Items.Surface:GetChildren()) do
+                                if a.Name:find("T") and not a:GetAttribute("InUse") then
+                                    for _, gui in pairs(LocalPlayer.PlayerGui:GetDescendants()) do
+                                        if gui:IsA("ImageLabel") and gui.Parent and gui.Parent.Parent.Parent.Name == "CustomerSpeechUI" then
+                                            ReplicatedStorage.Events.Restaurant.TaskCompleted:FireServer({
+                                                ["FurnitureModel"] = a, ["Tycoon"] = v, ["Name"] = "SendToTable",
+                                                ["GroupId"] = tostring(gui.Parent.Parent.Parent.Adornee.Parent.Parent.Name)
+                                            })
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end)
+                task.wait(0.5)
+            end
+        end)
+    end
+})
+
+-- 自动收取小费
+MyTab:Toggle({
+    Title = "自动收取小费",
+    Value = false,
+    Callback = function(state)
+        Data["自动拿零钱"] = state
+        spawn(function()
+            while Data["自动拿零钱"] do
+                pcall(function()
+                    for _, v in pairs(workspace.Tycoons:GetChildren()) do
+                        if v:FindFirstChild("Player") and v.Player.Value == LocalPlayer then
+                            ReplicatedStorage.Events.Restaurant.TipsCollected:FireServer(v)
+                        end
+                    end
+                end)
+                task.wait(1)
+            end
+        end)
+    end
+})
+
+-- ==================== 好友餐厅功能 ==================
+local FriendTab = Tabs.FriendRestaurant
+FriendTab:Paragraph({ Title = "说明", Desc = "若服务器内有好友，下方功能将对好友大亨生效" })
+
+function GetFriend()
+    for _, v in next, game:GetService("Players"):GetPlayers() do
+        if LocalPlayer:IsFriendsWith(v.UserId) then return v end
+    end
+    return nil
+end
+
+FriendTab:Toggle({
+    Title = "帮好友收集账单",
+    Default = false,
+    Callback = function(state)
+        local fData = state
+        spawn(function()
+            while fData do
+                local fr = GetFriend()
+                if fr then
+                    pcall(function()
+                        for _, v in pairs(workspace.Tycoons:GetChildren()) do
+                            if v.Player.Value == fr then
+                                for _, a in pairs(v.Items.Surface:GetChildren()) do
+                                    if a:FindFirstChild("Bill") then
+                                        ReplicatedStorage.Events.Restaurant.TaskCompleted:FireServer({["Tycoon"] = v, ["Name"] = "CollectBill", ["FurnitureModel"] = a})
+                                    end
+                                end
+                            end
+                        end
+                    end)
+                end
+                task.wait(0.5)
+            end
+        end)
+    end
+})
+
+-- ==================== 反挂机 ==================
+pcall(function()
+    local vu = game:GetService("VirtualUser")
+    if vu then
+        game:GetService("Players").LocalPlayer.Idled:Connect(function()
+            vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+            task.wait(1)
+            vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+        end)
+    end
+end)
+
+WindUI:Notify({ Title = "欢迎", Content = "用户 " .. game.Players.LocalPlayer.Name .. " 已载入脚本", Duration = 4 })
