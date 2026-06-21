@@ -179,7 +179,7 @@ else
     
     pcall(function()
         StarterGui:SetCore("SendNotification", {
-            Title = "YI_竞争对手V5反作弊",
+            Title = "YI_竞争对手反作弊",
             Text = "封禁绕过已开启",
             Duration = 3
         })
@@ -216,37 +216,72 @@ if queue_on_teleport then
     queue_on_teleport(MainScript)
 end
 
--- ========================= 使用 Linoria UI 库（第二个） =========================
-local repo = "https://raw.githubusercontent.com/mstudio45/LinoriaLib/main/"
-local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
-local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
-local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
+-- ========================= 使用 Obsidian UI 库 =========================
+local repo_obsidian = "https://raw.githubusercontent.com/mstudio45/Obsidian/main/"
+local Library = loadstring(game:HttpGet(repo_obsidian .. "Library.lua"))()
+local ThemeManager = loadstring(game:HttpGet(repo_obsidian .. "addons/ThemeManager.lua"))()
+local SaveManager = loadstring(game:HttpGet(repo_obsidian .. "addons/SaveManager.lua"))()
 
 local Options = Library.Options
-local Toggles = Library.Toggles
+local Toggles = {}
 
+-- 创建窗口
 local Window = Library:CreateWindow({
     Title = "YI_竞争对手",
     Center = true,
-    ToggleKeybind = Enum.KeyCode.RightControl,
     AutoShow = true,
+    TabPadding = 8,
+    MenuFadeTime = 0.2,
+    ToggleKeybind = Enum.KeyCode.RightControl,
     NotifySide = "Right",
     ShowCustomCursor = true,
 })
 
--- ========================= 创建标签页（按第一个脚本布局） =========================
-local TabCombat = Window:AddTab("战斗")
-local TabMovement = Window:AddTab("移动")
-local TabWeapon = Window:AddTab("武器修改")
-local TabCharacter = Window:AddTab("角色/外观")
-local TabVisual = Window:AddTab("视觉辅助")
-local TabSpoof = Window:AddTab("伪装系统")
-local TabSettings = Window:AddTab("UI设置")
+-- 标签页
+local TabCombat = Window:AddTab("战斗", "crosshair")
+local TabMovement = Window:AddTab("移动", "map")
+local TabWeapon = Window:AddTab("武器修改", "sliders")
+local TabCharacter = Window:AddTab("角色/外观", "user")
+local TabVisual = Window:AddTab("视觉辅助", "eye")
+local TabSettings = Window:AddTab("UI设置", "settings")
+
+-- ========================= 全局变量初始化 =========================
+getgenv().CompetitorEnabled = getgenv().CompetitorEnabled or false
+getgenv().CompetitorWallCheck = getgenv().CompetitorWallCheck or false
+getgenv().CompetitorHitChance = getgenv().CompetitorHitChance or 100
+getgenv().CompetitorDistance = getgenv().CompetitorDistance or 1000
+getgenv().CompetitorDelay = getgenv().CompetitorDelay or 0.01
+getgenv().RagebotEnabled = getgenv().RagebotEnabled or false
+getgenv().RagebotWallcheck = getgenv().RagebotWallcheck or false
+getgenv().RagebotDistance = getgenv().RagebotDistance or 1000
+getgenv().RagebotFirerate = getgenv().RagebotFirerate or 0.01
+getgenv().SilentAimEnabled = getgenv().SilentAimEnabled or false
+getgenv().SilentAimWallCheck = getgenv().SilentAimWallCheck or false
+getgenv().SilentFovRadius = getgenv().SilentFovRadius or 250
+getgenv().TeamCheckEnabled = getgenv().TeamCheckEnabled or false
+getgenv().AutoAimEnabled = getgenv().AutoAimEnabled or false
+getgenv().BulletTraceEnabled = getgenv().BulletTraceEnabled or false
+getgenv().AutoAimWallCheck = getgenv().AutoAimWallCheck or false
+getgenv().BulletTraceWallCheck = getgenv().BulletTraceWallCheck or false
+getgenv().BypassAntiCheatEnabled = getgenv().BypassAntiCheatEnabled or true
+getgenv().FovSize = getgenv().FovSize or 180
+getgenv().DynamicFovEnabled = getgenv().DynamicFovEnabled or true
+getgenv().FovFollowMouseEnabled = getgenv().FovFollowMouseEnabled or false
+getgenv().WallCheckEnabled = getgenv().WallCheckEnabled or true
+
+local Players_Service = game:GetService("Players")
+local LocalPlayer = Players_Service.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
+local DebrisService = game:GetService("Debris")
+local CoreGui = game:GetService("CoreGui")
 
 -- ========================= 配置文件系统 =========================
 local configFolder = "YI_Competitor"
 local configFile = configFolder .. "/PERMANENT_SETTINGS.json"
-local HttpService = game:GetService("HttpService")
 
 local function savePermanentSettings()
     local settings = {}
@@ -263,7 +298,6 @@ local function savePermanentSettings()
     settings.SilentAimWallCheck = getgenv().SilentAimWallCheck or false
     settings.SilentFovRadius = getgenv().SilentFovRadius or 250
     settings.TeamCheckEnabled = getgenv().TeamCheckEnabled or false
-    settings.CosmeticUnlockerEnabled = getgenv().CosmeticUnlockerEnabled or false
     settings.AutoAimEnabled = getgenv().AutoAimEnabled or false
     settings.BulletTraceEnabled = getgenv().BulletTraceEnabled or false
     settings.AutoAimWallCheck = getgenv().AutoAimWallCheck or false
@@ -274,14 +308,6 @@ local function savePermanentSettings()
     settings.FovFollowMouseEnabled = getgenv().FovFollowMouseEnabled or false
     settings.WallCheckEnabled = getgenv().WallCheckEnabled or true
     settings.ESPEnabled = vu85 or false
-    settings.SpoofActive = getgenv().SpoofActive or false
-    settings.SpoofUsername = getgenv().SpoofUsername or ""
-    settings.SpoofLevel = getgenv().SpoofLevel or "492"
-    settings.SpoofStreak = getgenv().SpoofStreak or "762"
-    settings.SpoofElo = getgenv().SpoofElo or "90000"
-    settings.SpoofPremium = getgenv().SpoofPremium or false
-    settings.SpoofVerified = getgenv().SpoofVerified or false
-    settings.SpoofPlatform = getgenv().SpoofPlatform or "DESKTOP"
     pcall(function()
         if Toggles then
             settings.NoShootCooldown = Toggles.RemoveShootCooldown and Toggles.RemoveShootCooldown.Value or false
@@ -321,7 +347,6 @@ local function loadPermanentSettings()
         if settings.SilentAimWallCheck ~= nil then getgenv().SilentAimWallCheck = settings.SilentAimWallCheck end
         if settings.SilentFovRadius ~= nil then getgenv().SilentFovRadius = settings.SilentFovRadius end
         if settings.TeamCheckEnabled ~= nil then getgenv().TeamCheckEnabled = settings.TeamCheckEnabled end
-        if settings.CosmeticUnlockerEnabled ~= nil then getgenv().CosmeticUnlockerEnabled = settings.CosmeticUnlockerEnabled end
         if settings.AutoAimEnabled ~= nil then getgenv().AutoAimEnabled = settings.AutoAimEnabled end
         if settings.BulletTraceEnabled ~= nil then getgenv().BulletTraceEnabled = settings.BulletTraceEnabled end
         if settings.AutoAimWallCheck ~= nil then getgenv().AutoAimWallCheck = settings.AutoAimWallCheck end
@@ -332,279 +357,16 @@ local function loadPermanentSettings()
         if settings.FovFollowMouseEnabled ~= nil then getgenv().FovFollowMouseEnabled = settings.FovFollowMouseEnabled end
         if settings.WallCheckEnabled ~= nil then getgenv().WallCheckEnabled = settings.WallCheckEnabled end
         if settings.ESPEnabled ~= nil then vu85 = settings.ESPEnabled end
-        if settings.SpoofActive ~= nil then getgenv().SpoofActive = settings.SpoofActive end
-        if settings.SpoofUsername ~= nil then getgenv().SpoofUsername = settings.SpoofUsername end
-        if settings.SpoofLevel ~= nil then getgenv().SpoofLevel = settings.SpoofLevel end
-        if settings.SpoofStreak ~= nil then getgenv().SpoofStreak = settings.SpoofStreak end
-        if settings.SpoofElo ~= nil then getgenv().SpoofElo = settings.SpoofElo end
-        if settings.SpoofPremium ~= nil then getgenv().SpoofPremium = settings.SpoofPremium end
-        if settings.SpoofVerified ~= nil then getgenv().SpoofVerified = settings.SpoofVerified end
-        if settings.SpoofPlatform ~= nil then getgenv().SpoofPlatform = settings.SpoofPlatform end
     end)
 end
 
 local autoSaveConnection = nil
 local function startAutoSave()
     if autoSaveConnection then return end
-    autoSaveConnection = game:GetService("RunService").Heartbeat:Connect(function()
+    autoSaveConnection = RunService.Heartbeat:Connect(function()
         task.wait(5)
         pcall(savePermanentSettings)
     end)
-end
-
--- ========================= 全局变量初始化 =========================
-getgenv().CompetitorEnabled = getgenv().CompetitorEnabled or false
-getgenv().CompetitorWallCheck = getgenv().CompetitorWallCheck or false
-getgenv().CompetitorHitChance = getgenv().CompetitorHitChance or 100
-getgenv().CompetitorDistance = getgenv().CompetitorDistance or 1000
-getgenv().CompetitorDelay = getgenv().CompetitorDelay or 0.01
-getgenv().RagebotEnabled = getgenv().RagebotEnabled or false
-getgenv().RagebotWallcheck = getgenv().RagebotWallcheck or false
-getgenv().RagebotDistance = getgenv().RagebotDistance or 1000
-getgenv().RagebotFirerate = getgenv().RagebotFirerate or 0.01
-getgenv().SilentAimEnabled = getgenv().SilentAimEnabled or false
-getgenv().SilentAimWallCheck = getgenv().SilentAimWallCheck or false
-getgenv().SilentFovRadius = getgenv().SilentFovRadius or 250
-getgenv().TeamCheckEnabled = getgenv().TeamCheckEnabled or false
-getgenv().CosmeticUnlockerEnabled = getgenv().CosmeticUnlockerEnabled or false
-getgenv().AutoAimEnabled = getgenv().AutoAimEnabled or false
-getgenv().BulletTraceEnabled = getgenv().BulletTraceEnabled or false
-getgenv().AutoAimWallCheck = getgenv().AutoAimWallCheck or false
-getgenv().BulletTraceWallCheck = getgenv().BulletTraceWallCheck or false
-getgenv().BypassAntiCheatEnabled = getgenv().BypassAntiCheatEnabled or true
-getgenv().FovSize = getgenv().FovSize or 180
-getgenv().DynamicFovEnabled = getgenv().DynamicFovEnabled or true
-getgenv().FovFollowMouseEnabled = getgenv().FovFollowMouseEnabled or false
-getgenv().WallCheckEnabled = getgenv().WallCheckEnabled or true
-getgenv().SpoofActive = getgenv().SpoofActive or false
-getgenv().SpoofUsername = getgenv().SpoofUsername or ""
-getgenv().SpoofLevel = getgenv().SpoofLevel or "492"
-getgenv().SpoofStreak = getgenv().SpoofStreak or "762"
-getgenv().SpoofElo = getgenv().SpoofElo or "90000"
-getgenv().SpoofPremium = getgenv().SpoofPremium or false
-getgenv().SpoofVerified = getgenv().SpoofVerified or false
-getgenv().SpoofPlatform = getgenv().SpoofPlatform or "DESKTOP"
-
-local Players_Service = game:GetService("Players")
-local LocalPlayer = Players_Service.LocalPlayer
-local oldNamecall = nil
-local spoofedPlayerData = nil
-local platformRenderConnection = nil
-local characterAddedConnection = nil
-
--- ========================= 搜索用户函数 =========================
-local function searchPlayers(username)
-    local url = "https://users.roblox.com/v1/users/search?keyword=" .. username .. "&limit=10"
-    local success, result = pcall(function()
-        return game:HttpGet(url, true)
-    end)
-    if success and result then
-        local data = HttpService:JSONDecode(result)
-        if data.data and #data.data > 0 then
-            return data.data
-        end
-    end
-    return {}
-end
-
-local function getUserInfo(userId)
-    local url = "https://users.roblox.com/v1/users/" .. tostring(userId)
-    local success, result = pcall(function()
-        return game:HttpGet(url, true)
-    end)
-    if success and result then
-        return HttpService:JSONDecode(result)
-    end
-    return nil
-end
-
--- ========================= 伪装核心函数（保持不变） =========================
-local function applySpoofToCharacter(char, userData, level, streak, elo, premium, verified, platform)
-    if not char then return end
-    char.Name = userData.name
-    local humanoid = char:FindFirstChild("Humanoid")
-    if humanoid then
-        humanoid.DisplayName = userData.displayName or userData.name
-    end
-    task.spawn(function()
-        pcall(function()
-            local success, appearance = pcall(function() 
-                return Players_Service:GetCharacterAppearanceAsync(userData.id) 
-            end)
-            if success and appearance then
-                for _, v in pairs(char:GetChildren()) do
-                    if v:IsA("Accessory") or v:IsA("Shirt") or v:IsA("Pants") or v:IsA("BodyColors") then
-                        v:Destroy()
-                    end
-                end
-                for _, v in pairs(appearance:GetChildren()) do
-                    if v:IsA("Shirt") or v:IsA("Pants") or v:IsA("BodyColors") then
-                        v.Parent = char
-                    elseif v:IsA("Accessory") then
-                        local humanoidChar = char:FindFirstChild("Humanoid")
-                        if humanoidChar then humanoidChar:AddAccessory(v) end
-                    end
-                end
-                local head = char:FindFirstChild("Head")
-                if head then
-                    local face = head:FindFirstChild("face")
-                    if face then face:Destroy() end
-                    if appearance:FindFirstChild("face") then
-                        appearance.face.Parent = head
-                    end
-                end
-                local parent = char.Parent
-                char.Parent = nil
-                char.Parent = parent
-            end
-        end)
-    end)
-end
-
-local function setupPlatformIcon()
-    local imagetable = {
-        ["DESKTOP"] = "rbxassetid://17136633356",
-        ["MOBILE"] = "rbxassetid://17136633510",
-        ["CONSOLE"] = "rbxassetid://17136633629",
-        ["VR"] = "rbxassetid://17136765745"
-    }
-    if platformRenderConnection then platformRenderConnection:Disconnect() end
-    platformRenderConnection = game:GetService("RunService").RenderStepped:Connect(function()
-        pcall(function()
-            local char = LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                local nametag = char.HumanoidRootPart:FindFirstChild("Nametag")
-                if nametag and nametag:FindFirstChild("Frame") then
-                    local frame = nametag.Frame:FindFirstChild("Player")
-                    if frame and frame:FindFirstChild("Controls") then
-                        frame.Controls.Image = imagetable[getgenv().SpoofPlatform]
-                    end
-                end
-            end
-        end)
-    end)
-end
-
-local function applySpoof()
-    local username = getgenv().SpoofUsername
-    if not username or username == "" then
-        Library:Notify('❌ 请先搜索选择用户', 2)
-        return false
-    end
-    local results = searchPlayers(username)
-    if #results == 0 then
-        Library:Notify('❌ 未找到用户: ' .. username, 2)
-        return false
-    end
-    local userData = getUserInfo(results[1].id)
-    if not userData or not userData.id then
-        Library:Notify('❌ 获取用户信息失败', 2)
-        return false
-    end
-    local level = getgenv().SpoofLevel
-    local streak = getgenv().SpoofStreak
-    local elo = getgenv().SpoofElo
-    local premium = getgenv().SpoofPremium
-    local verified = getgenv().SpoofVerified
-    local platform = getgenv().SpoofPlatform
-    spoofedPlayerData = {
-        id = userData.id,
-        name = userData.name,
-        displayName = userData.displayName or userData.name,
-        level = level,
-        streak = streak,
-        elo = elo,
-        premium = premium,
-        verified = verified,
-        platform = platform
-    }
-    LocalPlayer.Name = userData.name
-    LocalPlayer.DisplayName = userData.displayName or userData.name
-    LocalPlayer.UserId = userData.id
-    LocalPlayer.CharacterAppearanceId = userData.id
-    local char = LocalPlayer.Character
-    if char then
-        applySpoofToCharacter(char, userData, level, streak, elo, premium, verified, platform)
-    end
-    LocalPlayer:SetAttribute("Level", tonumber(level))
-    LocalPlayer:SetAttribute("StatisticDuelsWinStreak", tonumber(streak))
-    if tonumber(elo) > 0 then
-        LocalPlayer:SetAttribute("DisplayELO", tonumber(elo))
-    end
-    local leaderstats = LocalPlayer:FindFirstChild("leaderstats")
-    if leaderstats then
-        if leaderstats:FindFirstChild("Level") then
-            leaderstats.Level.Value = tonumber(level)
-        end
-        local winStreak = leaderstats:FindFirstChild("Win Streak")
-        if winStreak then
-            winStreak.Value = tonumber(streak)
-        end
-    end
-    if oldNamecall then
-        pcall(function() hookmetamethod(game, "__index", oldNamecall) end)
-    end
-    oldNamecall = hookmetamethod(game, "__index", function(self, key)
-        if self == LocalPlayer then
-            if key == "MembershipType" and premium then return Enum.MembershipType.Premium end
-            if key == "HasVerifiedBadge" and verified then return true end
-            if key == "UserId" then return userData.id end
-            if key == "Name" then return userData.name end
-            if key == "DisplayName" then return userData.displayName or userData.name end
-        end
-        return oldNamecall(self, key)
-    end)
-    setupPlatformIcon()
-    if characterAddedConnection then characterAddedConnection:Disconnect() end
-    characterAddedConnection = LocalPlayer.CharacterAdded:Connect(function(newChar)
-        task.wait(0.5)
-        if spoofedPlayerData then
-            applySpoofToCharacter(newChar, {
-                id = spoofedPlayerData.id,
-                name = spoofedPlayerData.name,
-                displayName = spoofedPlayerData.displayName
-            }, spoofedPlayerData.level, spoofedPlayerData.streak, spoofedPlayerData.elo, spoofedPlayerData.premium, spoofedPlayerData.verified, spoofedPlayerData.platform)
-            LocalPlayer:SetAttribute("Level", tonumber(spoofedPlayerData.level))
-            LocalPlayer:SetAttribute("StatisticDuelsWinStreak", tonumber(spoofedPlayerData.streak))
-            if tonumber(spoofedPlayerData.elo) > 0 then
-                LocalPlayer:SetAttribute("DisplayELO", tonumber(spoofedPlayerData.elo))
-            end
-            local newLeaderstats = LocalPlayer:FindFirstChild("leaderstats")
-            if newLeaderstats then
-                if newLeaderstats:FindFirstChild("Level") then
-                    newLeaderstats.Level.Value = tonumber(spoofedPlayerData.level)
-                end
-                local newWinStreak = newLeaderstats:FindFirstChild("Win Streak")
-                if newWinStreak then
-                    newWinStreak.Value = tonumber(spoofedPlayerData.streak)
-                end
-            end
-        end
-    end)
-    getgenv().SpoofActive = true
-    Library:Notify('✅ 伪装成功: @' .. userData.name .. ' (Lv.' .. level .. ')', 3)
-    savePermanentSettings()
-    return true
-end
-
-local function removeSpoof()
-    if oldNamecall then
-        pcall(function() hookmetamethod(game, "__index", oldNamecall) end)
-        oldNamecall = nil
-    end
-    if platformRenderConnection then
-        platformRenderConnection:Disconnect()
-        platformRenderConnection = nil
-    end
-    if characterAddedConnection then
-        characterAddedConnection:Disconnect()
-        characterAddedConnection = nil
-    end
-    spoofedPlayerData = nil
-    getgenv().SpoofActive = false
-    getgenv().SpoofUsername = ""
-    Library:Notify('❌ 伪装已解除', 2)
-    savePermanentSettings()
 end
 
 -- ========================= 全局工具函数 =========================
@@ -629,7 +391,7 @@ function IsTargetTeamValid(player)
     return true
 end
 
-local workspace_shared = game:GetService("Workspace")
+local workspace_shared = Workspace
 local function checkWallBetween(fromPos, toPos, targetCharacter)
     if not fromPos or not toPos or not targetCharacter then return false end
     local direction = (toPos - fromPos).Unit
@@ -649,7 +411,7 @@ local function checkWallBetween(fromPos, toPos, targetCharacter)
     return false
 end
 
--- ========================= ScreenGui ESP 模块（完整保留） =========================
+-- ========================= ScreenGui ESP 模块 =========================
 local vu88 = {}
 local vu85 = false
 local ESPSettings = {
@@ -675,7 +437,7 @@ local ESPSettings = {
         Boxes = { Animate = false, RotationSpeed = 300, Gradient = false, GradientRGB1 = Color3.fromRGB(119, 120, 255), GradientRGB2 = Color3.fromRGB(0, 0, 0), GradientFill = false, GradientFillRGB1 = Color3.fromRGB(119, 120, 255), GradientFillRGB2 = Color3.fromRGB(0, 0, 0), Filled = { Enabled = true, Transparency = 0.75, RGB = Color3.fromRGB(0, 0, 0), }, Full = { Enabled = true, RGB = Color3.fromRGB(255, 255, 255), }, Corner = { Enabled = true, RGB = Color3.fromRGB(255, 255, 255), }, },
     },
 }
-local Workspace_ESP, RunService_ESP, CoreGui_ESP = cloneref(game:GetService("Workspace")), cloneref(game:GetService("RunService")), game:GetService("CoreGui")
+local Workspace_ESP, RunService_ESP, CoreGui_ESP = cloneref(Workspace), cloneref(RunService), game:GetService("CoreGui")
 local lplayer_ESP = Players_Service.LocalPlayer
 local Cam_ESP = Workspace_ESP.CurrentCamera
 local ScreenGui = nil
@@ -841,14 +603,12 @@ local function vu153()
     end)
 end
 
--- ========================= 核心功能逻辑（Competitor, Ragebot, Silent Aim, AutoAim, BulletTrace 等完整保留） =========================
-local plr = game:GetService("Players").LocalPlayer
-local rs = game:GetService("ReplicatedStorage")
+-- ========================= 核心功能逻辑 =========================
+local plr = Players_Service.LocalPlayer
+local rs = ReplicatedStorage
 local evt = rs.Remotes.Replication.Fighter.UseItem
 local cam = workspace.CurrentCamera
-local rns = game:GetService("RunService")
-local DebrisService = game:GetService("Debris")
-local ws = game:GetService("Workspace")
+local rns = RunService
 local aur = true
 local lf, itm, trg = nil, nil, nil
 
@@ -1094,7 +854,7 @@ local function gtg()
     local ch = plr.Character
     if not ch or not ch:FindFirstChild("HumanoidRootPart") then return end
     local mp, nt, nd = ch.HumanoidRootPart.Position, nil, getgenv().RagebotDistance or 1000
-    for _, p in pairs(game:GetService("Players"):GetPlayers()) do
+    for _, p in pairs(Players_Service:GetPlayers()) do
         if p ~= plr and p.Character and IsTargetTeamValid(p) then
             local hr, hm = p.Character:FindFirstChild("HumanoidRootPart"), p.Character:FindFirstChild("Humanoid")
             if hr and hm and hm.Health > 0 then
@@ -1121,7 +881,7 @@ local function getScreenTarget()
     local closestDist = fov
     local targetChar = nil
     local targetPart = nil
-    for _, p in pairs(game:GetService("Players"):GetPlayers()) do
+    for _, p in pairs(Players_Service:GetPlayers()) do
         if p ~= plr and p.Character and IsTargetTeamValid(p) then
             local part = p.Character:FindFirstChild(silentAimTargetPart)
             if part then
@@ -1198,7 +958,6 @@ task.spawn(function()
     end
 end)
 
-local UserInputService = game:GetService("UserInputService")
 UserInputService.InputBegan:Connect(function(input, processed)
     if processed then return end
     if not getgenv().SilentAimEnabled or getgenv().CompetitorEnabled then return end
@@ -1231,20 +990,6 @@ rns.RenderStepped:Connect(function()
         fovCircle.Visible = false
     end
 end)
-
--- ========================= 外观解锁器（完整保留） =========================
-local CosmeticUnlockerRunning = false
-local function SetupCosmeticUnlocker()
-    if CosmeticUnlockerRunning then return end
-    CosmeticUnlockerRunning = true
-    -- （此处代码过长，省略实际内容，但实际会完整保留原脚本的解锁器）
-    Library:Notify('✅ 枪皮已启用', 2)
-end
-local function DisableCosmeticUnlocker()
-    if not CosmeticUnlockerRunning then return end
-    CosmeticUnlockerRunning = false
-    Library:Notify('❌ 枪皮已禁用请重新执行脚本以完全生效', 3)
-end
 
 -- ========================= 绕过反作弊 =========================
 local function doBypassAntiCheat()
@@ -1660,8 +1405,8 @@ local X_BulletTrace = {}
 X_BulletTrace.bone = "Head"
 X_BulletTrace.range = math.huge
 X_BulletTrace.services = {
-    rep = game:GetService("ReplicatedStorage"),
-    plr = game:GetService("Players"),
+    rep = ReplicatedStorage,
+    plr = Players_Service,
 }
 X_BulletTrace.mod = require(X_BulletTrace.services.rep.Modules.Utility)
 X_BulletTrace.original = X_BulletTrace.mod.Raycast
@@ -1709,7 +1454,7 @@ X_BulletTrace.mod.Raycast = function(...)
     return X_BulletTrace.original(table.unpack(args))
 end
 
--- ========================= 飞行/瞬移（完整保留） =========================
+-- ========================= 飞行/瞬移 =========================
 local FLYING = false
 local QEfly = true
 local iyflyspeed = 1
@@ -1720,6 +1465,7 @@ local velocityHandlerName = "VelocityHandler_" .. math.random(1000, 9999)
 local gyroHandlerName = "GyroHandler_" .. math.random(1000, 9999)
 local IsOnMobile = UserInputService.TouchEnabled
 
+local function isNumber(str) return tonumber(str) ~= nil end
 local function getRoot(char) return char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")) end
 
 function sFLY(vfly)
@@ -1858,7 +1604,7 @@ local function mobilefly(speaker, vfly)
             end
         end
     end)
-    mfly2 = game:GetService("RunService").RenderStepped:Connect(function()
+    mfly2 = RunService.RenderStepped:Connect(function()
         if not FLYING then return end
         local char = speaker.Character
         if not char then return end
@@ -1898,7 +1644,7 @@ local function startTpwalk(speaker, speed)
     local chr = speaker.Character
     local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
     while tpwalking and chr and hum and hum.Parent do
-        local delta = game:GetService("RunService").Heartbeat:Wait()
+        local delta = RunService.Heartbeat:Wait()
         if hum.MoveDirection.Magnitude > 0 then
             if speed then chr:TranslateBy(hum.MoveDirection * speed * delta * 10)
             else chr:TranslateBy(hum.MoveDirection * delta * 10) end
@@ -1915,129 +1661,352 @@ local function cleanup()
     stopTpwalk()
 end
 
--- ========================= 构建 UI（使用 Linoria） =========================
+-- ========================= 构建UI =========================
 
 -- 战斗标签页
 local CombatGroup1 = TabCombat:AddLeftGroupbox("竞争对手")
-CombatGroup1:AddToggle("CompetitorEnabled", { Text = "启用暴力追踪", Default = getgenv().CompetitorEnabled, Callback = function(v) getgenv().CompetitorEnabled = v savePermanentSettings() end })
-CombatGroup1:AddToggle("CompetitorWallCheck", { Text = "墙壁检测", Default = getgenv().CompetitorWallCheck, Callback = function(v) getgenv().CompetitorWallCheck = v savePermanentSettings() end })
-CombatGroup1:AddSlider("CompetitorHitChance", { Text = "命中概率 (%)", Default = getgenv().CompetitorHitChance, Min = 1, Max = 100, Rounding = 0, Callback = function(v) getgenv().CompetitorHitChance = v end })
-CombatGroup1:AddSlider("CompetitorDistance", { Text = "最大距离 (studs)", Default = getgenv().CompetitorDistance, Min = 100, Max = 5000, Rounding = 0, Callback = function(v) getgenv().CompetitorDistance = v end })
-CombatGroup1:AddSlider("CompetitorDelay", { Text = "射击延迟 (s)", Default = getgenv().CompetitorDelay, Min = 0.0001, Max = 0.5, Rounding = 4, Callback = function(v) getgenv().CompetitorDelay = v end })
+CombatGroup1:AddToggle("CompetitorEnabled", {
+    Text = "启用暴力追踪",
+    Default = getgenv().CompetitorEnabled,
+    Callback = function(v) getgenv().CompetitorEnabled = v savePermanentSettings() end
+})
+CombatGroup1:AddToggle("CompetitorWallCheck", {
+    Text = "墙壁检测",
+    Default = getgenv().CompetitorWallCheck,
+    Callback = function(v) getgenv().CompetitorWallCheck = v savePermanentSettings() end
+})
+CombatGroup1:AddSlider("CompetitorHitChance", {
+    Text = "命中概率 (%)",
+    Default = getgenv().CompetitorHitChance,
+    Min = 1, Max = 100, Rounding = 0,
+    Callback = function(v) getgenv().CompetitorHitChance = v end
+})
+CombatGroup1:AddSlider("CompetitorDistance", {
+    Text = "最大距离 (studs)",
+    Default = getgenv().CompetitorDistance,
+    Min = 100, Max = 5000, Rounding = 0,
+    Callback = function(v) getgenv().CompetitorDistance = v end
+})
+CombatGroup1:AddSlider("CompetitorDelay", {
+    Text = "射击延迟 (s)",
+    Default = getgenv().CompetitorDelay,
+    Min = 0.0001, Max = 0.5, Rounding = 4,
+    Callback = function(v) getgenv().CompetitorDelay = v end
+})
 
 local CombatGroup2 = TabCombat:AddLeftGroupbox("愤怒机器人")
-CombatGroup2:AddToggle("RagebotEnabled", { Text = "暴力自瞄", Default = getgenv().RagebotEnabled, Callback = function(v) getgenv().RagebotEnabled = v savePermanentSettings() end })
-CombatGroup2:AddToggle("RagebotWallcheck", { Text = "墙壁检测", Default = getgenv().RagebotWallcheck, Callback = function(v) getgenv().RagebotWallcheck = v savePermanentSettings() end })
-CombatGroup2:AddSlider("RagebotDistance", { Text = "最大距离 (studs)", Default = getgenv().RagebotDistance, Min = 100, Max = 5000, Rounding = 0, Callback = function(v) getgenv().RagebotDistance = v end })
-CombatGroup2:AddSlider("RagebotFirerate", { Text = "射击间隔 (s)", Default = getgenv().RagebotFirerate, Min = 0.0001, Max = 0.5, Rounding = 4, Callback = function(v) getgenv().RagebotFirerate = v end })
+CombatGroup2:AddToggle("RagebotEnabled", {
+    Text = "暴力自瞄",
+    Default = getgenv().RagebotEnabled,
+    Callback = function(v) getgenv().RagebotEnabled = v savePermanentSettings() end
+})
+CombatGroup2:AddToggle("RagebotWallcheck", {
+    Text = "墙壁检测",
+    Default = getgenv().RagebotWallcheck,
+    Callback = function(v) getgenv().RagebotWallcheck = v savePermanentSettings() end
+})
+CombatGroup2:AddSlider("RagebotDistance", {
+    Text = "最大距离 (studs)",
+    Default = getgenv().RagebotDistance,
+    Min = 100, Max = 5000, Rounding = 0,
+    Callback = function(v) getgenv().RagebotDistance = v end
+})
+CombatGroup2:AddSlider("RagebotFirerate", {
+    Text = "射击间隔 (s)",
+    Default = getgenv().RagebotFirerate,
+    Min = 0.0001, Max = 0.5, Rounding = 4,
+    Callback = function(v) getgenv().RagebotFirerate = v end
+})
 
 local CombatGroup3 = TabCombat:AddRightGroupbox("静默瞄准")
-CombatGroup3:AddToggle("SilentAimEnabled", { Text = "启用静默自瞄", Default = getgenv().SilentAimEnabled, Callback = function(v) getgenv().SilentAimEnabled = v if fovCircle then fovCircle.Visible = v end savePermanentSettings() end })
-CombatGroup3:AddToggle("SilentAimWallCheck", { Text = "墙壁检测", Default = getgenv().SilentAimWallCheck, Callback = function(v) getgenv().SilentAimWallCheck = v savePermanentSettings() end })
-CombatGroup3:AddSlider("SilentFovRadius", { Text = "FOV范围", Default = getgenv().SilentFovRadius, Min = 50, Max = 1000, Rounding = 0, Callback = function(v) getgenv().SilentFovRadius = v end })
-CombatGroup3:AddDropdown("SilentTargetPart", { Text = "瞄准部位", Values = { "Head", "HumanoidRootPart", "UpperTorso" }, Default = 1, Callback = function(v) silentAimTargetPart = v end })
+CombatGroup3:AddToggle("SilentAimEnabled", {
+    Text = "启用静默自瞄",
+    Default = getgenv().SilentAimEnabled,
+    Callback = function(v)
+        getgenv().SilentAimEnabled = v
+        if fovCircle then fovCircle.Visible = v end
+        savePermanentSettings()
+    end
+})
+CombatGroup3:AddToggle("SilentAimWallCheck", {
+    Text = "墙壁检测",
+    Default = getgenv().SilentAimWallCheck,
+    Callback = function(v) getgenv().SilentAimWallCheck = v savePermanentSettings() end
+})
+CombatGroup3:AddSlider("SilentFovRadius", {
+    Text = "FOV范围",
+    Default = getgenv().SilentFovRadius,
+    Min = 50, Max = 1000, Rounding = 0,
+    Callback = function(v) getgenv().SilentFovRadius = v end
+})
+CombatGroup3:AddDropdown("SilentTargetPart", {
+    Text = "瞄准部位",
+    Values = { "Head", "HumanoidRootPart", "UpperTorso" },
+    Default = 1,
+    Callback = function(v) silentAimTargetPart = v end
+})
 
 local CombatGroup4 = TabCombat:AddRightGroupbox("团队检测")
-CombatGroup4:AddToggle("TeamCheckEnabled", { Text = "启用团队检测", Default = getgenv().TeamCheckEnabled, Callback = function(v) getgenv().TeamCheckEnabled = v ESPSettings.TeamCheck = v savePermanentSettings() end })
+CombatGroup4:AddToggle("TeamCheckEnabled", {
+    Text = "启用团队检测",
+    Default = getgenv().TeamCheckEnabled,
+    Callback = function(v) getgenv().TeamCheckEnabled = v ESPSettings.TeamCheck = v savePermanentSettings() end
+})
 
 local CombatGroup5 = TabCombat:AddRightGroupbox("自瞄功能")
-CombatGroup5:AddToggle("AutoAimToggle", { Text = "自动瞄准", Default = getgenv().AutoAimEnabled, Callback = function(v) getgenv().AutoAimEnabled = v savePermanentSettings() end })
-CombatGroup5:AddToggle("AutoAimWallCheckToggle", { Text = "自动瞄准墙壁检测", Default = getgenv().AutoAimWallCheck, Callback = function(v) getgenv().AutoAimWallCheck = v savePermanentSettings() end })
-CombatGroup5:AddToggle("BulletTraceToggle", { Text = "子弹追踪", Default = getgenv().BulletTraceEnabled, Callback = function(v) getgenv().BulletTraceEnabled = v savePermanentSettings() end })
-CombatGroup5:AddToggle("BulletTraceWallCheckToggle", { Text = "子弹追踪墙壁检测", Default = getgenv().BulletTraceWallCheck, Callback = function(v) getgenv().BulletTraceWallCheck = v savePermanentSettings() end })
+CombatGroup5:AddToggle("AutoAimToggle", {
+    Text = "自动瞄准",
+    Default = getgenv().AutoAimEnabled,
+    Callback = function(v) getgenv().AutoAimEnabled = v savePermanentSettings() end
+})
+CombatGroup5:AddToggle("AutoAimWallCheckToggle", {
+    Text = "自动瞄准墙壁检测",
+    Default = getgenv().AutoAimWallCheck,
+    Callback = function(v) getgenv().AutoAimWallCheck = v savePermanentSettings() end
+})
+CombatGroup5:AddToggle("BulletTraceToggle", {
+    Text = "子弹追踪",
+    Default = getgenv().BulletTraceEnabled,
+    Callback = function(v) getgenv().BulletTraceEnabled = v savePermanentSettings() end
+})
+CombatGroup5:AddToggle("BulletTraceWallCheckToggle", {
+    Text = "子弹追踪墙壁检测",
+    Default = getgenv().BulletTraceWallCheck,
+    Callback = function(v) getgenv().BulletTraceWallCheck = v savePermanentSettings() end
+})
 
 local CombatGroup6 = TabCombat:AddRightGroupbox("反作弊")
-CombatGroup6:AddToggle("BypassAntiCheatToggle", { Text = "绕过反作弊 (关闭可能封号)", Default = getgenv().BypassAntiCheatEnabled, Callback = function(v) getgenv().BypassAntiCheatEnabled = v if v then pcall(doBypassAntiCheat) end savePermanentSettings() end })
+CombatGroup6:AddToggle("BypassAntiCheatToggle", {
+    Text = "绕过反作弊 (关闭可能封号)",
+    Default = getgenv().BypassAntiCheatEnabled,
+    Callback = function(v)
+        getgenv().BypassAntiCheatEnabled = v
+        if v then pcall(doBypassAntiCheat) end
+        savePermanentSettings()
+    end
+})
 
 -- 移动标签页
 local MoveGroup1 = TabMovement:AddLeftGroupbox("传送")
-MoveGroup1:AddButton({ Text = "传送到射击场", Func = function() ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("Misc", 9e9):WaitForChild("ShootingRangeEnter", 9e9):FireServer() end })
-MoveGroup1:AddButton({ Text = "传送到 1v1", Func = function() ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("Matchmaking", 9e9):WaitForChild("JoinQueue", 9e9):InvokeServer("1v1") end })
-MoveGroup1:AddButton({ Text = "传送到 2v2", Func = function() ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("Matchmaking", 9e9):WaitForChild("JoinQueue", 9e9):InvokeServer("2v2") end })
-MoveGroup1:AddButton({ Text = "传送到 3v3", Func = function() ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("Matchmaking", 9e9):WaitForChild("JoinQueue", 9e9):InvokeServer("3v3") end })
-MoveGroup1:AddButton({ Text = "传送到 4v4", Func = function() ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("Matchmaking", 9e9):WaitForChild("JoinQueue", 9e9):InvokeServer("4v4") end })
-MoveGroup1:AddButton({ Text = "传送到 5v5", Func = function() ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("Matchmaking", 9e9):WaitForChild("JoinQueue", 9e9):InvokeServer("5v5") end })
-MoveGroup1:AddButton({ Text = "传送到 2v2 (新手)", Func = function() ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("Matchmaking", 9e9):WaitForChild("JoinQueue", 9e9):InvokeServer("2v2_beginner") end })
+MoveGroup1:AddButton({
+    Text = "传送到射击场",
+    Func = function()
+        ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("Misc", 9e9):WaitForChild("ShootingRangeEnter", 9e9):FireServer()
+    end,
+})
+MoveGroup1:AddButton({
+    Text = "传送到 1v1",
+    Func = function()
+        ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("Matchmaking", 9e9):WaitForChild("JoinQueue", 9e9):InvokeServer("1v1")
+    end,
+})
+MoveGroup1:AddButton({
+    Text = "传送到 2v2",
+    Func = function()
+        ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("Matchmaking", 9e9):WaitForChild("JoinQueue", 9e9):InvokeServer("2v2")
+    end,
+})
+MoveGroup1:AddButton({
+    Text = "传送到 3v3",
+    Func = function()
+        ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("Matchmaking", 9e9):WaitForChild("JoinQueue", 9e9):InvokeServer("3v3")
+    end,
+})
+MoveGroup1:AddButton({
+    Text = "传送到 4v4",
+    Func = function()
+        ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("Matchmaking", 9e9):WaitForChild("JoinQueue", 9e9):InvokeServer("4v4")
+    end,
+})
+MoveGroup1:AddButton({
+    Text = "传送到 5v5",
+    Func = function()
+        ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("Matchmaking", 9e9):WaitForChild("JoinQueue", 9e9):InvokeServer("5v5")
+    end,
+})
+MoveGroup1:AddButton({
+    Text = "传送到 2v2 (新手)",
+    Func = function()
+        ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("Matchmaking", 9e9):WaitForChild("JoinQueue", 9e9):InvokeServer("2v2_beginner")
+    end,
+})
 
 local MoveGroup2 = TabMovement:AddRightGroupbox("飞行/瞬移")
-Toggles.VFlyToggle = MoveGroup2:AddToggle("VFlyToggle", { Text = "飞行", Default = false, Callback = function(v) if v then if Toggles.TpwalkToggle and Toggles.TpwalkToggle.Value then Toggles.TpwalkToggle:SetValue(false) end local success = toggleFly(true) Library:Notify(success and "飞行已开启" or "飞行已关闭", 2) else toggleFly(true) Library:Notify("飞行已关闭", 2) end end })
-Options.VFlySpeedSlider = MoveGroup2:AddSlider("VFlySpeedSlider", { Text = "飞行速度", Default = 1, Min = 0.1, Max = 20, Rounding = 1, Callback = function(v) vehicleflyspeed = v iyflyspeed = v end })
-Toggles.TpwalkToggle = MoveGroup2:AddToggle("TpwalkToggle", { Text = "瞬移行走", Default = false, Callback = function(v) if v then if Toggles.VFlyToggle and Toggles.VFlyToggle.Value then Toggles.VFlyToggle:SetValue(false) end tpwalking = true task.spawn(function() startTpwalk(Players_Service.LocalPlayer, Options.TpwalkSpeed.Value) end) Library:Notify("TP Walk ON", 2) else stopTpwalk() Library:Notify("TP Walk OFF", 2) end end })
-Options.TpwalkSpeed = MoveGroup2:AddSlider("TpwalkSpeed", { Text = "瞬移速度", Default = 1, Min = 0.1, Max = 30, Rounding = 1, Callback = function(v) if Toggles.TpwalkToggle and Toggles.TpwalkToggle.Value then stopTpwalk() tpwalking = true task.spawn(function() startTpwalk(Players_Service.LocalPlayer, v) end) end })
+Toggles.VFlyToggle = MoveGroup2:AddToggle("VFlyToggle", {
+    Text = "飞行",
+    Default = false,
+    Callback = function(v)
+        if v then
+            if Toggles.TpwalkToggle and Toggles.TpwalkToggle.Value then Toggles.TpwalkToggle:SetValue(false) end
+            local success = toggleFly(true)
+            Library:Notify(success and "飞行已开启" or "飞行已关闭", 2)
+        else
+            toggleFly(true)
+            Library:Notify("飞行已关闭", 2)
+        end
+    end
+})
+Options.VFlySpeedSlider = MoveGroup2:AddSlider("VFlySpeedSlider", {
+    Text = "飞行速度",
+    Default = 1,
+    Min = 0.1, Max = 20, Rounding = 1,
+    Callback = function(v) vehicleflyspeed = v iyflyspeed = v end
+})
+Toggles.TpwalkToggle = MoveGroup2:AddToggle("TpwalkToggle", {
+    Text = "瞬移行走",
+    Default = false,
+    Callback = function(v)
+        if v then
+            if Toggles.VFlyToggle and Toggles.VFlyToggle.Value then Toggles.VFlyToggle:SetValue(false) end
+            tpwalking = true
+            task.spawn(function() startTpwalk(Players_Service.LocalPlayer, Options.TpwalkSpeed.Value) end)
+            Library:Notify("TP Walk ON", 2)
+        else
+            stopTpwalk()
+            Library:Notify("TP Walk OFF", 2)
+        end
+    end
+})
+Options.TpwalkSpeed = MoveGroup2:AddSlider("TpwalkSpeed", {
+    Text = "瞬移速度",
+    Default = 1,
+    Min = 0.1, Max = 30, Rounding = 1,
+    Callback = function(v)
+        if Toggles.TpwalkToggle and Toggles.TpwalkToggle.Value then
+            stopTpwalk()
+            tpwalking = true
+            task.spawn(function() startTpwalk(Players_Service.LocalPlayer, v) end)
+        end
+    end
+})
 
 -- 武器修改标签页
 local WeaponGroup = TabWeapon:AddLeftGroupbox("冷却 / 散射 / 后坐力")
-WeaponGroup:AddToggle("RemoveShootCooldown", { Text = "无射击冷却", Default = false, Callback = function(v) toggleTableAttribute("ShootCooldown", v and 0 or nil) savePermanentSettings() end })
-WeaponGroup:AddToggle("RemoveShootSpread", { Text = "无散射", Default = false, Callback = function(v) toggleTableAttribute("ShootSpread", v and 0 or nil) savePermanentSettings() end })
-WeaponGroup:AddToggle("RemoveShootRecoil", { Text = "无后坐力", Default = false, Callback = function(v) toggleTableAttribute("ShootRecoil", v and 0 or nil) savePermanentSettings() end })
-WeaponGroup:AddToggle("RemoveAttackCooldown", { Text = "无攻击冷却", Default = false, Callback = function(v) toggleTableAttribute("AttackCooldown", v and 0 or nil) savePermanentSettings() end })
-WeaponGroup:AddToggle("RemoveDeflectCooldown", { Text = "无格挡冷却", Default = false, Callback = function(v) toggleTableAttribute("DeflectCooldown", v and 0 or nil) savePermanentSettings() end })
-WeaponGroup:AddToggle("RemoveDashCooldown", { Text = "无冲刺冷却", Default = false, Callback = function(v) toggleTableAttribute("DashCooldown", v and 0 or nil) savePermanentSettings() end })
-WeaponGroup:AddToggle("RemoveGenericCooldown", { Text = "无通用冷却", Default = false, Callback = function(v) toggleTableAttribute("Cooldown", v and 0 or nil) savePermanentSettings() end })
-WeaponGroup:AddToggle("RemoveSpinCooldown", { Text = "无旋转冷却", Default = false, Callback = function(v) toggleTableAttribute("SpinCooldown", v and 0 or nil) savePermanentSettings() end })
-WeaponGroup:AddToggle("RemoveBuildCooldown", { Text = "无建筑冷却", Default = false, Callback = function(v) toggleTableAttribute("BuildCooldown", v and 0 or nil) savePermanentSettings() end })
+WeaponGroup:AddToggle("RemoveShootCooldown", {
+    Text = "无射击冷却",
+    Default = false,
+    Callback = function(v) toggleTableAttribute("ShootCooldown", v and 0 or nil) savePermanentSettings() end
+})
+WeaponGroup:AddToggle("RemoveShootSpread", {
+    Text = "无散射",
+    Default = false,
+    Callback = function(v) toggleTableAttribute("ShootSpread", v and 0 or nil) savePermanentSettings() end
+})
+WeaponGroup:AddToggle("RemoveShootRecoil", {
+    Text = "无后坐力",
+    Default = false,
+    Callback = function(v) toggleTableAttribute("ShootRecoil", v and 0 or nil) savePermanentSettings() end
+})
+WeaponGroup:AddToggle("RemoveAttackCooldown", {
+    Text = "无攻击冷却",
+    Default = false,
+    Callback = function(v) toggleTableAttribute("AttackCooldown", v and 0 or nil) savePermanentSettings() end
+})
+WeaponGroup:AddToggle("RemoveDeflectCooldown", {
+    Text = "无格挡冷却",
+    Default = false,
+    Callback = function(v) toggleTableAttribute("DeflectCooldown", v and 0 or nil) savePermanentSettings() end
+})
+WeaponGroup:AddToggle("RemoveDashCooldown", {
+    Text = "无冲刺冷却",
+    Default = false,
+    Callback = function(v) toggleTableAttribute("DashCooldown", v and 0 or nil) savePermanentSettings() end
+})
+WeaponGroup:AddToggle("RemoveGenericCooldown", {
+    Text = "无通用冷却",
+    Default = false,
+    Callback = function(v) toggleTableAttribute("Cooldown", v and 0 or nil) savePermanentSettings() end
+})
+WeaponGroup:AddToggle("RemoveSpinCooldown", {
+    Text = "无旋转冷却",
+    Default = false,
+    Callback = function(v) toggleTableAttribute("SpinCooldown", v and 0 or nil) savePermanentSettings() end
+})
+WeaponGroup:AddToggle("RemoveBuildCooldown", {
+    Text = "无建筑冷却",
+    Default = false,
+    Callback = function(v) toggleTableAttribute("BuildCooldown", v and 0 or nil) savePermanentSettings() end
+})
 
 -- 角色/外观标签页
 local CharGroup1 = TabCharacter:AddLeftGroupbox("设备欺骗")
-CharGroup1:AddDropdown("SpoofPlatformDevice", { Text = "平台", Values = { "VR", "MOBILE", "CONSOLE", "DESKTOP" }, Default = 1, Callback = function(v) Options.SpoofPlatform = v end })
+CharGroup1:AddDropdown("SpoofPlatformDevice", {
+    Text = "平台",
+    Values = { "VR", "MOBILE", "CONSOLE", "DESKTOP" },
+    Default = 1,
+    Callback = function(v) Options.SpoofPlatform = v end
+})
 CharGroup1:AddButton("应用设备欺骗", function()
     local platformValue = Options.SpoofPlatform
     local remote = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Replication") and ReplicatedStorage.Remotes.Replication:FindFirstChild("Fighter") and ReplicatedStorage.Remotes.Replication.Fighter:FindFirstChild("SetControls")
     if remote then remote:FireServer(platformValue) Library:Notify('设备伪装为: ' .. platformValue, 2) else Library:Notify('SetControls 远程事件未找到!', 3) end
 end)
 
-local CharGroup2 = TabCharacter:AddRightGroupbox("解锁枪皮")
-CharGroup2:AddToggle("CosmeticUnlockerToggle", { Text = "启用枪皮解锁", Default = getgenv().CosmeticUnlockerEnabled, Callback = function(v) getgenv().CosmeticUnlockerEnabled = v savePermanentSettings() if v then SetupCosmeticUnlocker() else DisableCosmeticUnlocker() end end })
-CharGroup2:AddLabel("解锁所有皮肤、挂件、舞蹈、贴纸 (仅客户端)")
-
 -- 视觉辅助标签页
 local VisualGroup = TabVisual:AddLeftGroupbox("ESP 主控")
-VisualGroup:AddToggle("ESP_ScreenGui_Enabled", { Text = "总开关ESP", Default = vu85, Callback = function(v) vu85 = v savePermanentSettings() if v then vu153() else vu158() end end })
+VisualGroup:AddToggle("ESP_ScreenGui_Enabled", {
+    Text = "总开关ESP",
+    Default = vu85,
+    Callback = function(v)
+        vu85 = v
+        savePermanentSettings()
+        if v then vu153() else vu158() end
+    end
+})
 
--- 伪装系统标签页
-local SpoofGroup = TabSpoof:AddLeftGroupbox("身份伪装")
-local searchResults = {}
-local selectedUser = nil
-
-SpoofGroup:AddInput("SpoofUsernameInput", { Text = "搜索用户名", Default = getgenv().SpoofUsername, Placeholder = "输入Roblox用户名", Callback = function(v) getgenv().SpoofUsername = v if v and v ~= "" then local results = searchPlayers(v) searchResults = results if #results > 0 then selectedUser = results[1] local namesList = "" for i, user in ipairs(results) do namesList = namesList .. user.name .. (i < #results and ", " or "") end Library:Notify('🔍 找到 ' .. #results .. ' 个用户: ' .. namesList, 3) else selectedUser = nil Library:Notify('❌ 未找到用户: ' .. v, 2) end end end })
-SpoofGroup:AddDropdown("SelectUser", { Text = "选择要伪装的用户", Values = function() local names = {"-- 请先搜索 --"} for _, user in ipairs(searchResults) do table.insert(names, user.name .. " (" .. user.id .. ")") end return names end, Default = 1, Callback = function(v) if v and v ~= "-- 请先搜索 --" then local namePart = v:match("^(.-)%s+%(") if namePart then for _, user in ipairs(searchResults) do if user.name == namePart then selectedUser = user getgenv().SpoofUsername = user.name Library:Notify('✅ 已选择: @' .. user.name, 2) break end end end end end })
-SpoofGroup:AddDivider()
-SpoofGroup:AddInput("SpoofLevel", { Text = "等级", Default = getgenv().SpoofLevel, Placeholder = "等级数字", Callback = function(v) getgenv().SpoofLevel = v end })
-SpoofGroup:AddInput("SpoofStreak", { Text = "连胜", Default = getgenv().SpoofStreak, Placeholder = "连胜数", Callback = function(v) getgenv().SpoofStreak = v end })
-SpoofGroup:AddInput("SpoofElo", { Text = "ELO分数", Default = getgenv().SpoofElo, Placeholder = "ELO分数", Callback = function(v) getgenv().SpoofElo = v end })
-SpoofGroup:AddToggle("SpoofPremium", { Text = "Premium会员", Default = getgenv().SpoofPremium, Callback = function(v) getgenv().SpoofPremium = v end })
-SpoofGroup:AddToggle("SpoofVerified", { Text = "Verified认证", Default = getgenv().SpoofVerified, Callback = function(v) getgenv().SpoofVerified = v end })
-SpoofGroup:AddDropdown("SpoofPlatformDropdown", { Text = "平台图标", Values = { "DESKTOP", "MOBILE", "CONSOLE", "VR" }, Default = function() local p = getgenv().SpoofPlatform for i, v in pairs({ "DESKTOP", "MOBILE", "CONSOLE", "VR" }) do if v == p then return i end end return 1 end, Callback = function(v) getgenv().SpoofPlatform = v end })
-SpoofGroup:AddDivider()
-SpoofGroup:AddButton("确认伪装", function() if selectedUser then getgenv().SpoofUsername = selectedUser.name applySpoof() elseif getgenv().SpoofUsername and getgenv().SpoofUsername ~= "" then local results = searchPlayers(getgenv().SpoofUsername) if #results > 0 then selectedUser = results[1] getgenv().SpoofUsername = selectedUser.name Library:Notify('✅ 自动选择: @' .. selectedUser.name, 2) applySpoof() else Library:Notify('❌ 未找到用户: ' .. getgenv().SpoofUsername, 2) end else Library:Notify('❌ 请先输入用户名', 2) end end)
-SpoofGroup:AddButton("解除伪装", function() if getgenv().SpoofActive then removeSpoof() else Library:Notify('当前没有激活的伪装', 2) end end)
-
--- UI设置标签页
+-- 设置标签页
 local SettingsMenuGroup = TabSettings:AddLeftGroupbox("界面设置")
 SettingsMenuGroup:AddLabel("菜单快捷键"):AddKeyPicker("MenuKeybind", { Default = "RightShift", NoUI = true, Text = "菜单快捷键" })
 Library.ToggleKeybind = Options.MenuKeybind
-SettingsMenuGroup:AddToggle("ShowKeybinds", { Text = "显示快捷键悬浮框", Default = false }):OnChanged(function() Library.KeybindFrame.Visible = Toggles.ShowKeybinds and Toggles.ShowKeybinds.Value or false end)
-SettingsMenuGroup:AddToggle("ShowCustomCursor", { Text = "自定义鼠标指针", Default = true, Callback = function(v) Library.ShowCustomCursor = v end })
+
+SettingsMenuGroup:AddToggle("ShowKeybinds", { Text = "显示快捷键悬浮框", Default = false }):OnChanged(function()
+    Library.KeybindFrame.Visible = Toggles.ShowKeybinds and Toggles.ShowKeybinds.Value or false
+end)
+
+SettingsMenuGroup:AddToggle("ShowCustomCursor", {
+    Text = "自定义鼠标指针",
+    Default = true,
+    Callback = function(v) Library.ShowCustomCursor = v end
+})
+
 SettingsMenuGroup:AddDivider()
-SettingsMenuGroup:AddDropdown("DPIDropdown", { Values = { "50%", "75%", "100%", "125%", "150%", "175%", "200%" }, Default = "100%", Text = "DPI 缩放", Callback = function(v) v = v:gsub("%%", "") local dpi = tonumber(v) Library:SetDPIScale(dpi) end })
+SettingsMenuGroup:AddDropdown("DPIDropdown", {
+    Values = { "50%", "75%", "100%", "125%", "150%", "175%", "200%" },
+    Default = "100%",
+    Text = "DPI 缩放",
+    Callback = function(v)
+        v = v:gsub("%%", "")
+        local dpi = tonumber(v)
+        Library:SetDPIScale(dpi)
+    end,
+})
 
 local UtilityBox = TabSettings:AddRightGroupbox("工具选项")
-UtilityBox:AddButton("卸载脚本", function() if getgenv().FPSConnection then getgenv().FPSConnection:Disconnect() end Library:Unload() end)
+UtilityBox:AddButton("卸载脚本", function()
+    if getgenv().FPSConnection then getgenv().FPSConnection:Disconnect() end
+    Library:Unload()
+end)
 
 -- ========================= 水印 =========================
 local Watermark = Library:AddDraggableLabel("YI_竞争对手 @灰")
 Watermark:SetVisible(true)
+
 local FrameTimer = tick()
 local FrameCounter = 0
 local FPS = 60
-getgenv().FPSConnection = game:GetService("RunService").RenderStepped:Connect(function()
+getgenv().FPSConnection = RunService.RenderStepped:Connect(function()
     FrameCounter = FrameCounter + 1
     if (tick() - FrameTimer) >= 1 then
         FPS = FrameCounter
         FrameTimer = tick()
         FrameCounter = 0
     end
-    Watermark:SetText(("YI_竞争对手 @灰 | %s fps | %s ms"):format(math.floor(FPS), math.floor(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue())))
+    Watermark:SetText(
+        ("YI_竞争对手 @灰 | %s fps | %s ms"):format(
+            math.floor(FPS),
+            math.floor(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue())
+        )
+    )
 end)
 
 -- ========================= Theme & Save Manager =========================
@@ -2050,37 +2019,46 @@ SaveManager:SetFolder("YI_Competitor/main")
 SaveManager:BuildConfigSection(TabSettings)
 ThemeManager:ApplyToTab(TabSettings)
 
--- ========================= 加载设置并恢复状态 =========================
+-- ========================= 加载永久设置并恢复功能状态 =========================
 loadPermanentSettings()
 startAutoSave()
 
-if vu85 then task.wait(1) vu153() end
-if Toggles then
-    task.wait(2)
-    pcall(function()
-        if Toggles.RemoveShootCooldown and Toggles.RemoveShootCooldown.Value then toggleTableAttribute("ShootCooldown", 0) end
-        if Toggles.RemoveShootSpread and Toggles.RemoveShootSpread.Value then toggleTableAttribute("ShootSpread", 0) end
-        if Toggles.RemoveShootRecoil and Toggles.RemoveShootRecoil.Value then toggleTableAttribute("ShootRecoil", 0) end
-        if Toggles.RemoveAttackCooldown and Toggles.RemoveAttackCooldown.Value then toggleTableAttribute("AttackCooldown", 0) end
-        if Toggles.RemoveDeflectCooldown and Toggles.RemoveDeflectCooldown.Value then toggleTableAttribute("DeflectCooldown", 0) end
-        if Toggles.RemoveDashCooldown and Toggles.RemoveDashCooldown.Value then toggleTableAttribute("DashCooldown", 0) end
-        if Toggles.RemoveGenericCooldown and Toggles.RemoveGenericCooldown.Value then toggleTableAttribute("Cooldown", 0) end
-        if Toggles.RemoveSpinCooldown and Toggles.RemoveSpinCooldown.Value then toggleTableAttribute("SpinCooldown", 0) end
-        if Toggles.RemoveBuildCooldown and Toggles.RemoveBuildCooldown.Value then toggleTableAttribute("BuildCooldown", 0) end
-    end)
+-- 恢复ESP状态
+if vu85 then
+    task.wait(1)
+    vu153()
 end
-if getgenv().CosmeticUnlockerEnabled then task.wait(3) SetupCosmeticUnlocker() end
-if getgenv().SpoofActive and getgenv().SpoofUsername ~= "" then task.wait(4) applySpoof() end
-if getgenv().BypassAntiCheatEnabled then pcall(doBypassAntiCheat) end
 
+-- 恢复武器修改状态
+pcall(function()
+    if Toggles.RemoveShootCooldown and Toggles.RemoveShootCooldown.Value then toggleTableAttribute("ShootCooldown", 0) end
+    if Toggles.RemoveShootSpread and Toggles.RemoveShootSpread.Value then toggleTableAttribute("ShootSpread", 0) end
+    if Toggles.RemoveShootRecoil and Toggles.RemoveShootRecoil.Value then toggleTableAttribute("ShootRecoil", 0) end
+    if Toggles.RemoveAttackCooldown and Toggles.RemoveAttackCooldown.Value then toggleTableAttribute("AttackCooldown", 0) end
+    if Toggles.RemoveDeflectCooldown and Toggles.RemoveDeflectCooldown.Value then toggleTableAttribute("DeflectCooldown", 0) end
+    if Toggles.RemoveDashCooldown and Toggles.RemoveDashCooldown.Value then toggleTableAttribute("DashCooldown", 0) end
+    if Toggles.RemoveGenericCooldown and Toggles.RemoveGenericCooldown.Value then toggleTableAttribute("Cooldown", 0) end
+    if Toggles.RemoveSpinCooldown and Toggles.RemoveSpinCooldown.Value then toggleTableAttribute("SpinCooldown", 0) end
+    if Toggles.RemoveBuildCooldown and Toggles.RemoveBuildCooldown.Value then toggleTableAttribute("BuildCooldown", 0) end
+end)
+
+-- 恢复反作弊绕过
+if getgenv().BypassAntiCheatEnabled then
+    pcall(doBypassAntiCheat)
+end
+
+-- 卸载清理
 Library:OnUnload(function()
     if getgenv().FPSConnection then getgenv().FPSConnection:Disconnect() end
     cleanup()
     vu158()
     aur = false
-    if getgenv().SpoofActive then removeSpoof() end
     print('已卸载!')
     Library.Unloaded = true
 end)
 
-Library:Notify({ Title = "YI_竞争对手", Description = "脚本加载成功! 作者: @灰", Time = 4 })
+Library:Notify({
+    Title = "YI_竞争对手",
+    Description = "脚本加载成功! 作者: @灰",
+    Time = 4,
+})
