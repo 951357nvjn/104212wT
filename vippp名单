@@ -1,1 +1,18 @@
-
+{
+  "951357nvjj": {
+    "title": "YI_HUB作者:灰",
+    "intro": "主要脚本编写与开发设计",
+    "strokeColor": [255, 100, 150],
+    "nameColor": [255, 255, 255],
+    "titleColor": [255, 180, 200],
+    "introColor": [200, 200, 255]
+  },
+  "cheng_baiwei": {
+    "title": "YI_HUB副作者:橙子",
+    "intro": "提供后勤保障与技术支持",
+    "strokeColor": [255, 100, 150],
+    "nameColor": [255, 255, 255],
+    "titleColor": [255, 180, 200],
+    "introColor": [200, 200, 255]
+  }
+}
